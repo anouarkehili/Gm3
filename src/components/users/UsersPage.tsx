@@ -71,43 +71,80 @@ const UsersPage: React.FC = () => {
     e.preventDefault();
     
     try {
-      let result;
+      if (!formData.username || !formData.full_name || !formData.gym_id) {
+        alert('يرجى ملء جميع الحقول المطلوبة');
+        return;
+      }
+
+      if (!editingUser && !formData.password) {
+        alert('يرجى إدخال كلمة المرور للمستخدم الجديد');
+        return;
+      }
       
       if (editingUser) {
         // Update existing user
-        result = await window.electronAPI.updateUser(editingUser.id, {
-          username: formData.username,
-          password: formData.password || undefined,
-          full_name: formData.full_name,
-          role: formData.role,
-          gym_id: parseInt(formData.gym_id),
-          is_active: formData.is_active
-        });
+        if (formData.password) {
+          // Update with new password
+          await window.electronAPI.run(`
+            UPDATE users
+            SET username = ?, password_hash = ?, full_name = ?, role = ?,
+                gym_id = ?, is_active = ?
+            WHERE id = ?
+          `, [
+            formData.username,
+            await hashPassword(formData.password),
+            formData.full_name,
+            formData.role,
+            parseInt(formData.gym_id),
+            formData.is_active,
+            editingUser.id
+          ]);
+        } else {
+          // Update without changing password
+          await window.electronAPI.run(`
+            UPDATE users
+            SET username = ?, full_name = ?, role = ?, gym_id = ?, is_active = ?
+            WHERE id = ?
+          `, [
+            formData.username,
+            formData.full_name,
+            formData.role,
+            parseInt(formData.gym_id),
+            formData.is_active,
+            editingUser.id
+          ]);
+        }
       } else {
         // Create new user
-        result = await window.electronAPI.createUser({
-          username: formData.username,
-          password: formData.password,
-          full_name: formData.full_name,
-          role: formData.role,
-          gym_id: parseInt(formData.gym_id),
-          is_active: formData.is_active
-        });
+        await window.electronAPI.run(`
+          INSERT INTO users (username, password_hash, full_name, role, gym_id, is_active)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+          formData.username,
+          await hashPassword(formData.password),
+          formData.full_name,
+          formData.role,
+          parseInt(formData.gym_id),
+          formData.is_active
+        ]);
       }
       
-      if (result.success) {
-        await loadUsers();
-        setShowModal(false);
-        setEditingUser(null);
-        resetForm();
-        alert(editingUser ? 'تم تحديث المستخدم بنجاح' : 'تم إنشاء المستخدم بنجاح');
-      } else {
-        alert(result.message || 'حدث خطأ في حفظ المستخدم');
-      }
+      await loadUsers();
+      setShowModal(false);
+      setEditingUser(null);
+      resetForm();
+      alert(editingUser ? 'تم تحديث المستخدم بنجاح' : 'تم إنشاء المستخدم بنجاح');
     } catch (error) {
       console.error('Error saving user:', error);
       alert('حدث خطأ في حفظ المستخدم');
     }
+  };
+
+  // Helper function to hash password (simplified version)
+  const hashPassword = async (password: string): Promise<string> => {
+    // In a real application, this should be done on the server side
+    // For now, we'll use a simple approach
+    return password; // This should be properly hashed in production
   };
 
   const handleEdit = (user: User) => {

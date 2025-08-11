@@ -103,6 +103,9 @@ const DashboardHome: React.FC = () => {
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
         break;
+      case 'all':
+        // عرض جميع البيانات - لا نحتاج لتحديد تاريخ
+        return { start: null, end: null };
       case 'custom':
         if (startDate && endDate) {
           start = new Date(startDate);
@@ -122,7 +125,7 @@ const DashboardHome: React.FC = () => {
       let dateCondition = '';
       let dateParams: any[] = [];
 
-      if (dateRange !== 'custom' || (startDate && endDate)) {
+      if (dateRange !== 'all' && (dateRange !== 'custom' || (startDate && endDate))) {
         dateCondition = "AND datetime(created_at) BETWEEN datetime(?) AND datetime(?)";
         dateParams = [start.toISOString(), end.toISOString()];
       }
@@ -286,6 +289,7 @@ const DashboardHome: React.FC = () => {
               { key: 'today', label: 'اليوم', icon: Clock },
               { key: 'week', label: 'هذا الأسبوع', icon: Calendar },
               { key: 'month', label: 'هذا الشهر', icon: CalendarDays },
+              { key: 'all', label: 'الكل', icon: BarChart3 },
               { key: 'custom', label: 'فترة مخصصة', icon: Filter }
             ].map(({ key, label, icon: Icon }) => (
               <button
@@ -518,6 +522,190 @@ const DashboardHome: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Recent Activities and Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Customer Debts */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center mb-4">
+            <CreditCard className="w-5 h-5 text-red-600 ml-2" />
+            <h3 className="text-lg font-semibold text-gray-900 arabic-text">العملاء المدينون</h3>
+          </div>
+          <CustomerDebts gymId={gymId} />
+        </div>
+
+        {/* Low Stock Products */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center mb-4">
+            <Package className="w-5 h-5 text-orange-600 ml-2" />
+            <h3 className="text-lg font-semibold text-gray-900 arabic-text">منتجات ستنفد قريباً</h3>
+          </div>
+          <LowStockProducts />
+        </div>
+
+        {/* Expiring Subscriptions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center mb-4">
+            <Users className="w-5 h-5 text-yellow-600 ml-2" />
+            <h3 className="text-lg font-semibold text-gray-900 arabic-text">اشتراكات تنتهي قريباً</h3>
+          </div>
+          <ExpiringSubscriptions gymId={gymId} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Component for Customer Debts
+const CustomerDebts: React.FC<{ gymId: number }> = ({ gymId }) => {
+  const [debts, setDebts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCustomerDebts();
+  }, [gymId]);
+
+  const loadCustomerDebts = async () => {
+    try {
+      const data = await window.electronAPI.query(`
+        SELECT c.name, c.phone, SUM(i.total - i.paid_amount) as total_debt
+        FROM customers c
+        JOIN invoices i ON c.id = i.customer_id
+        WHERE i.gym_id = ? AND i.is_credit = 1 AND i.total > i.paid_amount
+        GROUP BY c.id, c.name, c.phone
+        ORDER BY total_debt DESC
+        LIMIT 5
+      `, [gymId]);
+      setDebts(data);
+    } catch (error) {
+      console.error('Error loading customer debts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ar-DZ', {
+      style: 'currency',
+      currency: 'DZD',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  if (loading) return <div className="text-center py-4"><div className="spinner"></div></div>;
+
+  return (
+    <div className="space-y-3">
+      {debts.length === 0 ? (
+        <p className="text-gray-500 text-center py-4 arabic-text">لا توجد ديون</p>
+      ) : (
+        debts.map((debt, index) => (
+          <div key={index} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+            <div>
+              <p className="font-medium text-gray-900 arabic-text">{debt.name}</p>
+              <p className="text-sm text-gray-600">{debt.phone}</p>
+            </div>
+            <span className="font-bold text-red-600">{formatCurrency(debt.total_debt)}</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+// Component for Low Stock Products
+const LowStockProducts: React.FC = () => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadLowStockProducts();
+  }, []);
+
+  const loadLowStockProducts = async () => {
+    try {
+      const data = await window.electronAPI.query(`
+        SELECT name, (male_gym_quantity + female_gym_quantity) as total_quantity
+        FROM products
+        WHERE (male_gym_quantity + female_gym_quantity) < 5 AND (male_gym_quantity + female_gym_quantity) > 0
+        ORDER BY total_quantity ASC
+        LIMIT 5
+      `);
+      setProducts(data);
+    } catch (error) {
+      console.error('Error loading low stock products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="text-center py-4"><div className="spinner"></div></div>;
+
+  return (
+    <div className="space-y-3">
+      {products.length === 0 ? (
+        <p className="text-gray-500 text-center py-4 arabic-text">جميع المنتجات متوفرة</p>
+      ) : (
+        products.map((product, index) => (
+          <div key={index} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+            <p className="font-medium text-gray-900 arabic-text">{product.name}</p>
+            <span className="font-bold text-orange-600">{product.total_quantity} متبقي</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+// Component for Expiring Subscriptions
+const ExpiringSubscriptions: React.FC<{ gymId: number }> = ({ gymId }) => {
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadExpiringSubscriptions();
+  }, [gymId]);
+
+  const loadExpiringSubscriptions = async () => {
+    try {
+      const data = await window.electronAPI.query(`
+        SELECT full_name, end_date, status
+        FROM subscribers
+        WHERE gym_id = ? AND (status = 'expiring' OR status = 'expired')
+        ORDER BY end_date ASC
+        LIMIT 5
+      `, [gymId]);
+      setSubscriptions(data);
+    } catch (error) {
+      console.error('Error loading expiring subscriptions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="text-center py-4"><div className="spinner"></div></div>;
+
+  return (
+    <div className="space-y-3">
+      {subscriptions.length === 0 ? (
+        <p className="text-gray-500 text-center py-4 arabic-text">جميع الاشتراكات نشطة</p>
+      ) : (
+        subscriptions.map((sub, index) => (
+          <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+            <div>
+              <p className="font-medium text-gray-900 arabic-text">{sub.full_name}</p>
+              <p className="text-sm text-gray-600">
+                {new Date(sub.end_date).toLocaleDateString('ar-DZ')}
+              </p>
+            </div>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              sub.status === 'expired' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              {sub.status === 'expired' ? 'منتهي' : 'ينتهي قريباً'}
+            </span>
+          </div>
+        ))
+      )}
     </div>
   );
 };

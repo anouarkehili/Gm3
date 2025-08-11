@@ -170,6 +170,25 @@ const CustomersPage: React.FC = () => {
     }
   };
 
+  const markDebtAsPaid = async (invoiceId: number) => {
+    try {
+      const invoice = customerDebts.find(d => d.id === invoiceId);
+      if (invoice) {
+        await window.electronAPI.run(`
+          UPDATE invoices 
+          SET paid_amount = total
+          WHERE id = ?
+        `, [invoiceId]);
+        
+        await loadCustomerDebts(selectedCustomer!.id);
+        await loadCustomers();
+      }
+    } catch (error) {
+      console.error('Error marking debt as paid:', error);
+      alert('حدث خطأ في تسجيل الدفع');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -462,6 +481,12 @@ const CustomersPage: React.FC = () => {
                             className="btn-success-ar text-xs py-1 px-2"
                           >
                             دفع
+                          </button>
+                          <button
+                            onClick={() => markDebtAsPaid(debt.id)}
+                            className="btn-primary-ar text-xs py-1 px-2"
+                          >
+                            تسديد كامل
                           </button>
                         </td>
                       </tr>

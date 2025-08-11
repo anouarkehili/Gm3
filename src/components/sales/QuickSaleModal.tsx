@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Minus, Scan, User, CreditCard, Calculator } from 'lucide-react';
+import { X, Plus, Minus, Scan, User, CreditCard, Calculator, ShoppingCart } from 'lucide-react';
 import { useGym } from '../../contexts/GymContext';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -45,6 +45,7 @@ const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ isOpen, onClose }) => {
   const [discount, setDiscount] = useState(0);
   const [paidAmount, setPaidAmount] = useState(0);
   const [isCredit, setIsCredit] = useState(false);
+  const [showProductSelector, setShowProductSelector] = useState(false);
   const [isSingleSession, setIsSingleSession] = useState(false);
   const [singleSessionPrice, setSingleSessionPrice] = useState(500);
   const [newCustomer, setNewCustomer] = useState({
@@ -419,25 +420,15 @@ const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ isOpen, onClose }) => {
             {/* Manual Product Selection */}
             {!isSingleSession && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3 arabic-text">اختيار المنتجات يدوياً</h3>
-                <div className="max-h-40 overflow-y-auto bg-gray-50 rounded-lg p-3">
-                  <div className="grid grid-cols-1 gap-2">
-                    {products.map((product) => (
-                      <button
-                        key={product.id}
-                        onClick={() => addProductManually(product)}
-                        className="flex items-center justify-between p-2 bg-white rounded border hover:bg-blue-50 transition-colors text-right"
-                      >
-                        <div className="flex-1">
-                          <div className="font-medium arabic-text">{product.name}</div>
-                          <div className="text-sm text-gray-600">
-                            {formatCurrency(product.sale_price)}
-                          </div>
-                        </div>
-                        <div className="text-blue-600 font-bold">+</div>
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold arabic-text">المنتجات</h3>
+                  <button
+                    onClick={() => setShowProductSelector(true)}
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <ShoppingCart className="w-4 h-4 ml-2" />
+                    <span className="arabic-text">إضافة منتج</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -574,16 +565,6 @@ const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ isOpen, onClose }) => {
                   </div>
                 )}
 
-                <div>
-                  <label className="form-label-ar arabic-text">المبلغ المدفوع (دج)</label>
-                  <input
-                    type="number"
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
-                    className="form-input-ar"
-                    min="0"
-                  />
-                </div>
 
                 <div>
                   <label className="flex items-center">
@@ -596,11 +577,32 @@ const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ isOpen, onClose }) => {
                     <span className="arabic-text">دفع آجل</span>
                   </label>
                 </div>
+
+                {isCredit && (
+                  <div>
+                    <label className="form-label-ar arabic-text">المبلغ المدفوع (دج)</label>
+                    <input
+                      type="number"
+                      value={paidAmount}
+                      onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
+                      className="form-input-ar"
+                      min="0"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Totals */}
             <div className="mb-6 p-4 bg-white rounded-lg border">
+              {/* Digital Display for Total */}
+              <div className="text-center mb-4 p-4 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg text-white">
+                <div className="text-sm arabic-text opacity-90">المجموع الكلي</div>
+                <div className="text-3xl font-bold font-mono">
+                  {formatCurrency(calculateTotal())}
+                </div>
+              </div>
+              
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="arabic-text">المجموع الفرعي:</span>
@@ -612,10 +614,6 @@ const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ isOpen, onClose }) => {
                     <span>-{formatCurrency(discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-lg font-bold border-t pt-2">
-                  <span className="arabic-text">المجموع الكلي:</span>
-                  <span>{formatCurrency(calculateTotal())}</span>
-                </div>
                 {calculateTotal() > paidAmount && (
                   <div className="flex justify-between text-red-600 font-medium">
                     <span className="arabic-text">المبلغ المتبقي:</span>
@@ -643,6 +641,43 @@ const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
         </div>
+
+        {/* Product Selector Modal */}
+        {showProductSelector && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white rounded-lg p-6 w-96 max-h-96 overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold arabic-text">اختيار المنتجات</h3>
+                <button
+                  onClick={() => setShowProductSelector(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {products.map((product) => (
+                  <button
+                    key={product.id}
+                    onClick={() => {
+                      addProductManually(product);
+                      setShowProductSelector(false);
+                    }}
+                    className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-blue-50 rounded-lg transition-colors text-right"
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium arabic-text">{product.name}</div>
+                      <div className="text-sm text-gray-600">
+                        {formatCurrency(product.sale_price)}
+                      </div>
+                    </div>
+                    <div className="text-blue-600 font-bold">+</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* New Customer Modal */}
         {showCustomerForm && (

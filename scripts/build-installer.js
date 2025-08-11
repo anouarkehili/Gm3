@@ -5,13 +5,21 @@ const path = require('path');
 console.log('🚀 بدء عملية بناء المثبت...');
 
 try {
+  // تنظيف cache node_modules
+  console.log('🧹 تنظيف الـ cache...');
+  try {
+    execSync('npm cache clean --force', { stdio: 'inherit' });
+  } catch (e) {
+    console.log('⚠️ تعذر تنظيف الـ cache، المتابعة...');
+  }
+
   // تنظيف المجلدات السابقة
   console.log('🧹 تنظيف المجلدات السابقة...');
   if (fs.existsSync('dist')) {
-    execSync('rm -rf dist', { stdio: 'inherit' });
+    fs.rmSync('dist', { recursive: true, force: true });
   }
   if (fs.existsSync('dist-electron')) {
-    execSync('rm -rf dist-electron', { stdio: 'inherit' });
+    fs.rmSync('dist-electron', { recursive: true, force: true });
   }
 
   // التأكد من وجود مجلد build-resources
@@ -19,6 +27,21 @@ try {
     fs.mkdirSync('build-resources', { recursive: true });
     console.log('📁 تم إنشاء مجلد build-resources');
   }
+
+  // إنشاء أيقونة افتراضية بسيطة إذا لم تكن موجودة
+  const iconPath = path.join('build-resources', 'icon.ico');
+  if (!fs.existsSync(iconPath)) {
+    console.log('⚠️ لم يتم العثور على أيقونة، سيتم إنشاء أيقونة افتراضية');
+    // نسخ أيقونة من public إذا كانت موجودة
+    const publicIconPath = path.join('public', 'icon.png');
+    if (fs.existsSync(publicIconPath)) {
+      fs.copyFileSync(publicIconPath, path.join('build-resources', 'icon.png'));
+    }
+  }
+
+  // تثبيت التبعيات
+  console.log('📦 تثبيت التبعيات...');
+  execSync('npm install', { stdio: 'inherit' });
 
   // إنشاء أيقونة افتراضية إذا لم تكن موجودة
   const iconPath = path.join('build-resources', 'icon.ico');
@@ -49,9 +72,13 @@ try {
 
   // إنشاء المثبت
   console.log('📦 إنشاء المثبت...');
-  execSync('npx electron-builder --config electron-builder.json --publish=never', { 
+  execSync('npx electron-builder --config electron-builder.json --publish=never --win', { 
     stdio: 'inherit',
-    env: { ...process.env, NODE_ENV: 'production' }
+    env: { 
+      ...process.env, 
+      NODE_ENV: 'production',
+      DEBUG: 'electron-builder'
+    }
   });
 
   console.log('✅ تم إنشاء المثبت بنجاح!');
@@ -77,6 +104,8 @@ try {
   console.log('- تأكد من وجود Node.js و npm');
   console.log('- تأكد من تثبيت جميع التبعيات: npm install');
   console.log('- تأكد من وجود ملف icon.ico في مجلد build-resources');
+  console.log('- تأكد من عدم وجود مجلدات مفتوحة في dist أو dist-electron');
+  console.log('- جرب تشغيل: npm run build أولاً للتأكد من عدم وجود أخطاء');
   
   process.exit(1);
 }

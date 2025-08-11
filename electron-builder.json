@@ -11,7 +11,19 @@
     "!data/**/*",
     "node_modules/**/*",
     "package.json",
-    "!node_modules/.cache/**/*"
+    "!node_modules/.cache/**/*",
+    "!node_modules/electron/**/*",
+    "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+    "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+    "!**/node_modules/*.d.ts",
+    "!**/node_modules/.bin",
+    "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+    "!.editorconfig",
+    "!**/._*",
+    "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+    "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+    "!**/{appveyor.yml,.travis.yml,circle.yml}",
+    "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
   ],
   "extraResources": [
     {
@@ -34,7 +46,8 @@
     ],
     "icon": "build-resources/icon.ico",
     "requestedExecutionLevel": "asInvoker",
-    "artifactName": "${productName}-${version}-Setup.${ext}"
+    "artifactName": "${productName}-${version}-Setup.${ext}",
+    "verifyUpdateCodeSignature": false
   },
   "nsis": {
     "oneClick": false,
@@ -52,7 +65,8 @@
     "include": "installer.nsh",
     "perMachine": false,
     "displayLanguageSelector": false,
-    "language": 1025
+    "language": 1025,
+    "differentialPackage": false
   },
   "mac": {
     "category": "public.app-category.business",

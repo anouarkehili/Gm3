@@ -10,11 +10,12 @@
     "preview": "vite preview",
     "electron": "electron electron/main.cjs",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron electron/main.cjs\"",
-    "build-electron": "npm run build && electron-builder --config electron-builder.json",
-    "dist": "npm run build && electron-builder --config electron-builder.json --publish=never",
-    "pack": "npm run build && electron-builder --config electron-builder.json --dir",
+    "build-electron": "npm run build && electron-builder --config electron-builder.json --publish=never",
+    "dist": "npm run build && electron-builder --config electron-builder.json --publish=never --win",
+    "pack": "npm run build && electron-builder --config electron-builder.json --dir --win",
     "build-installer": "node scripts/build-installer.js",
-    "reset-passwords": "node remove-encryption.cjs"
+    "reset-passwords": "node remove-encryption.cjs",
+    "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@eslint/js": "^9.9.1",
     "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^24.2.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^5.0.0",

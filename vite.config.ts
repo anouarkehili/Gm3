@@ -19,8 +19,14 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: process.env.NODE_ENV === 'development',
     chunkSizeWarningLimit: 1000,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
     rollupOptions: {
-      external: ['bcryptjs'],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],

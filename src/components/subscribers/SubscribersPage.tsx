@@ -48,6 +48,18 @@ const SubscribersPage: React.FC = () => {
   });
 
   useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !showModal) {
+        e.preventDefault();
+        openAddModal();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [showModal]);
+
+  useEffect(() => {
     loadSubscribers();
     loadSubscriptionTypes();
   }, [gymId]);
