@@ -1,0 +1,67 @@
+directories:
+  output: dist-electron
+  buildResources: build-resources
+appId: com.gymdada.management.app
+productName: نظام إدارة الصالة الرياضية - GYM DADA
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+      - '!data/**/*'
+      - node_modules/**/*
+      - package.json
+      - '!node_modules/.cache/**/*'
+extraResources:
+  - from: electron/
+    to: data/
+    filter:
+      - database.cjs
+  - from: docs/
+    to: docs/
+    filter:
+      - '**/*'
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build-resources/icon.ico
+  requestedExecutionLevel: asInvoker
+  artifactName: ${productName}-${version}-Setup.${ext}
+nsis:
+  oneClick: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: نظام إدارة الصالة الرياضية
+  installerIcon: build-resources/icon.ico
+  uninstallerIcon: build-resources/icon.ico
+  installerHeaderIcon: build-resources/icon.ico
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+  menuCategory: نظام إدارة الصالة الرياضية
+  include: installer.nsh
+  perMachine: false
+  displayLanguageSelector: false
+  language: '1025'
+mac:
+  category: public.app-category.business
+  target:
+    target: dmg
+    arch:
+      - x64
+      - arm64
+  icon: build-resources/icon.icns
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Office
+  icon: build-resources/icon.png
+publish: null
+compression: maximum
+buildDependenciesFromSource: false
+nodeGypRebuild: false
+electronVersion: 37.2.5
